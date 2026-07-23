@@ -47,7 +47,7 @@ public class JobController {
             return ResponseEntity.noContent().build();
         }
 
-        @PutMapping("/{id}")
+        @PutMapping("/status/{id}")
         public ResponseEntity<JobResponseDTO> changeStatus(@PathVariable Long id,@Valid JobStatus status){
             return ResponseEntity.ok(jobService.changeStatus(id,status));
         }
