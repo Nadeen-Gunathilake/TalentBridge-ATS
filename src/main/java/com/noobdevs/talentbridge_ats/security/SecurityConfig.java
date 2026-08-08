@@ -1,0 +1,76 @@
+package com.noobdevs.talentbridge_ats.security;
+
+import lombok.RequiredArgsConstructor;
+import org.springframework.context.annotation.Bean;
+import org.springframework.context.annotation.Configuration;
+import org.springframework.http.HttpMethod;
+import org.springframework.security.authentication.AuthenticationManager;
+import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
+import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.web.builders.HttpSecurity;
+import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
+import org.springframework.security.config.http.SessionCreationPolicy;
+import org.springframework.security.crypto.bcrypt.BCryptPasswordEncoder;
+import org.springframework.security.crypto.password.PasswordEncoder;
+import org.springframework.security.web.SecurityFilterChain;
+import org.springframework.security.web.authentication.UsernamePasswordAuthenticationFilter;
+
+@Configuration
+@EnableWebSecurity
+@RequiredArgsConstructor
+public class SecurityConfig {
+
+    private final JwtAuthFilter jwtAuthFilter;
+    private final CustomUserDetailsService userDetailsService;
+
+    @Bean
+    public PasswordEncoder passwordEncoder() {
+        return new BCryptPasswordEncoder();
+    }
+
+    @Bean
+    public DaoAuthenticationProvider authenticationProvider() {
+        DaoAuthenticationProvider provider = new DaoAuthenticationProvider(userDetailsService);
+        provider.setPasswordEncoder(passwordEncoder());
+        return provider;
+    }
+
+    @Bean
+    public AuthenticationManager authenticationManager(AuthenticationConfiguration config) throws Exception{
+        return config.getAuthenticationManager();
+    }
+
+    @Bean
+    public SecurityFilterChain securityFilterChain(HttpSecurity http) throws Exception{
+        http
+                .csrf(csrf -> csrf.disable())
+                .sessionManagement(sm -> sm.sessionCreationPolicy(SessionCreationPolicy.STATELESS))
+                .authorizeHttpRequests(auth -> auth
+
+                        .requestMatchers("/auth/**").permitAll()
+                        .requestMatchers("/error").permitAll()
+
+                        .requestMatchers(HttpMethod.GET, "/api/jobs/**").permitAll()
+                        .requestMatchers(HttpMethod.POST, "/api/jobs").hasRole("RECRUITER")
+                        .requestMatchers(HttpMethod.PUT, "/api/jobs/**").hasRole("RECRUITER")
+                        .requestMatchers(HttpMethod.DELETE, "/api/jobs/**").hasRole("RECRUITER")
+
+                                // Applications — order matters: specific paths before broader ones
+                        .requestMatchers(HttpMethod.POST, "/api/applications/jobs/*").hasRole("CANDIDATE")
+                        .requestMatchers(HttpMethod.GET, "/api/applications/jobs/*").hasRole("RECRUITER")
+                        .requestMatchers(HttpMethod.GET, "/api/applications/recruiter/*").hasRole("RECRUITER")
+                        .requestMatchers(HttpMethod.PUT, "/api/applications/*/withdraw").hasRole("CANDIDATE")
+                        .requestMatchers(HttpMethod.PUT, "/api/applications/*/status").hasRole("RECRUITER")
+                        .requestMatchers(HttpMethod.GET, "/api/applications/*/resume").hasRole("RECRUITER")
+                        .requestMatchers(HttpMethod.GET, "/api/applications/*").hasRole("CANDIDATE")
+                        .requestMatchers(HttpMethod.GET, "/api/applications").hasRole("CANDIDATE")
+
+                        .requestMatchers("/api/recruiters/**").hasRole("RECRUITER")
+                        .requestMatchers("/api/candidates/**").authenticated()
+                        .anyRequest().authenticated()
+                )
+                .authenticationProvider(authenticationProvider())
+                .addFilterBefore(jwtAuthFilter, UsernamePasswordAuthenticationFilter.class);
+        return http.build();
+    }
+}

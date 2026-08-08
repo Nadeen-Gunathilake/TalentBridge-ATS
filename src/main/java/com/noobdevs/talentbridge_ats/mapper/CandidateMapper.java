@@ -1,32 +1,31 @@
 package com.noobdevs.talentbridge_ats.mapper;
 
 
-import com.noobdevs.talentbridge_ats.dto.UserRequestDTO;
-import com.noobdevs.talentbridge_ats.dto.UserResponseDTO;
-import com.noobdevs.talentbridge_ats.models.Job;
+import com.noobdevs.talentbridge_ats.dto.CandidateRequestDTO;
+import com.noobdevs.talentbridge_ats.dto.CandidateResponseDTO;
+import com.noobdevs.talentbridge_ats.models.Candidate;
 import com.noobdevs.talentbridge_ats.models.User;
 import org.springframework.stereotype.Component;
 
 @Component
-public class UserMapper {
+public class CandidateMapper {
 
-    public UserResponseDTO toResponseDTO(User entity) {
-        UserResponseDTO dto = new UserResponseDTO();
+    public CandidateResponseDTO toResponseDTO(Candidate entity) {
+        CandidateResponseDTO dto = new CandidateResponseDTO();
         dto.setId(entity.getId());
         dto.setName(entity.getName());
         dto.setEmail(entity.getEmail());
-        dto.setRole(entity.getRole());
+
         return dto;
 
     }
 
-    public User toEntity(UserRequestDTO dto) {
-        User entity = new User();
+    public Candidate toEntity(CandidateRequestDTO dto) {
+        Candidate entity = new Candidate();
 
         entity.setName(dto.getName());
         entity.setEmail(dto.getEmail());
         entity.setPassword(dto.getPassword());
-        entity.setRole(dto.getRole());
         return entity;
     }
 

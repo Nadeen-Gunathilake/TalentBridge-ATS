@@ -17,4 +17,5 @@ public class JobResponseDTO {
     private String required_skills;
     private LocalDate closing_date;
     private JobStatus status;
+    private String createdBy;
 }

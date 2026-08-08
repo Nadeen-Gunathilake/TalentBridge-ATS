@@ -23,8 +23,14 @@ public class JobMapper {
         dto.setRequired_skills(entity.getRequired_skills());
         dto.setClosing_date(entity.getClosing_date());
         dto.setStatus(entity.getStatus());
-        return dto;
 
+        if (entity.getCreatedBy() != null) {
+            dto.setCreatedBy(entity.getCreatedBy().getName());
+        } else {
+            dto.setCreatedBy("Unassigned");
+        }
+
+        return dto;
     }
 
     public Job toEntity(JobRequestDTO dto) {
