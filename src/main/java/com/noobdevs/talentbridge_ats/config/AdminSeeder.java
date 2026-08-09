@@ -24,7 +24,7 @@ public class AdminSeeder implements ApplicationRunner {
     @Value("${app.admin.password}")
     private String password;
 
-    @Value("${app.admin.department}")
+    @Value("${app.admin.recruiter-type}")
     private String recruiterType;
 
     @Override
