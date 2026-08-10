@@ -1,13 +1,16 @@
 package com.noobdevs.talentbridge_ats.controller;
 
-import com.noobdevs.talentbridge_ats.dto.ApplicationRecruiterViewDTO;
-import com.noobdevs.talentbridge_ats.dto.ApplicationResponseDTO;
-import com.noobdevs.talentbridge_ats.dto.ApplicationStatusUpdateDTO;
+import com.noobdevs.talentbridge_ats.dto.*;
+import com.noobdevs.talentbridge_ats.dto.*;
+import com.noobdevs.talentbridge_ats.enums.ApplicationStatus;
 import com.noobdevs.talentbridge_ats.exception.ResourceNotFoundException;
 import com.noobdevs.talentbridge_ats.service.ApplicationService;
 import jakarta.validation.Valid;
 import org.springframework.core.io.Resource;
 import org.springframework.core.io.UrlResource;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpHeaders;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.MediaType;
@@ -31,19 +34,16 @@ public class ApplicationController {
         this.applicationService = applicationService;
     }
 
-    // FR-U7 — candidate's own applications
     @GetMapping
     public ResponseEntity<List<ApplicationResponseDTO>> getMyApplications(Authentication authentication) {
         return ResponseEntity.ok(applicationService.getMyApplications(authentication.getName()));
     }
 
-    // FR-U7 (single) — candidate viewing their own application
     @GetMapping("/{id}")
     public ResponseEntity<ApplicationResponseDTO> getMyApplicationById(@PathVariable Long id, Authentication authentication) {
         return ResponseEntity.ok(applicationService.getMyApplicationById(id, authentication.getName()));
     }
 
-    // FR-U5 — apply to an open job (multipart: optional cover note + optional resume)
     @PostMapping(value = "/jobs/{jobId}", consumes = MediaType.MULTIPART_FORM_DATA_VALUE)
     public ResponseEntity<ApplicationResponseDTO> applyToJob(
             @PathVariable Long jobId,
@@ -55,31 +55,48 @@ public class ApplicationController {
         return ResponseEntity.status(HttpStatus.CREATED).body(created);
     }
 
-    // FR-U8 — withdraw (soft status change, ownership-checked in service)
     @PutMapping("/{id}/withdraw")
     public ResponseEntity<ApplicationResponseDTO> withdrawApplication(@PathVariable Long id, Authentication authentication) {
         return ResponseEntity.ok(applicationService.withdrawApplication(id, authentication.getName()));
     }
 
-    // FR-R6 — recruiter: applications for a specific job
     @GetMapping("/jobs/{jobId}")
-    public ResponseEntity<List<ApplicationRecruiterViewDTO>> getApplicationsForJob(@PathVariable Long jobId) {
-        return ResponseEntity.ok(applicationService.getApplicationsForJob(jobId));
+    public ResponseEntity<Page<ApplicationRecruiterViewDTO>> getApplicationsForJob(
+            @PathVariable Long jobId,
+            @RequestParam(required = false) ApplicationStatus status,
+            @PageableDefault(size = 10, sort = "appliedAt") Pageable pageable) {
+        return ResponseEntity.ok(applicationService.getApplicationsForJob(jobId, status, pageable));
     }
 
-    // FR-R7 — recruiter: full detail on a single application
     @GetMapping("/recruiter/{id}")
     public ResponseEntity<ApplicationRecruiterViewDTO> getApplicationByIdForRecruiter(@PathVariable Long id) {
         return ResponseEntity.ok(applicationService.getApplicationByIdForRecruiter(id));
     }
 
-    // FR-R10 (basic) — advance status
     @PutMapping("/{id}/status")
     public ResponseEntity<ApplicationRecruiterViewDTO> changeStatus(@PathVariable Long id, @Valid @RequestBody ApplicationStatusUpdateDTO dto) {
         return ResponseEntity.ok(applicationService.changeStatus(id, dto.getStatus()));
     }
 
-    // FR-R11 — recruiter downloads the candidate's resume
+    @PutMapping("/{id}/rating")
+    public ResponseEntity<ApplicationRecruiterViewDTO> rateApplication(@PathVariable Long id, @Valid @RequestBody ApplicationRatingUpdateDTO dto) {
+        return ResponseEntity.ok(applicationService.rateApplication(id, dto.getRating()));
+    }
+
+    @PostMapping("/{id}/notes")
+    public ResponseEntity<ApplicationNoteResponseDTO> addNote(
+            @PathVariable Long id,
+            @Valid @RequestBody ApplicationNoteRequestDTO dto,
+            Authentication authentication) {
+        ApplicationNoteResponseDTO created = applicationService.addNote(id, dto.getContent(), authentication.getName());
+        return ResponseEntity.status(HttpStatus.CREATED).body(created);
+    }
+
+    @GetMapping("/{id}/notes")
+    public ResponseEntity<List<ApplicationNoteResponseDTO>> getNotes(@PathVariable Long id) {
+        return ResponseEntity.ok(applicationService.getNotes(id));
+    }
+
     @GetMapping("/{id}/resume")
     public ResponseEntity<Resource> downloadResume(@PathVariable Long id) throws IOException {
         String resumePath = applicationService.getResumePath(id);

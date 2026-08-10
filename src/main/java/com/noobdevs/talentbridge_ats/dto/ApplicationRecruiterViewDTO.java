@@ -19,4 +19,5 @@ public class ApplicationRecruiterViewDTO {
     private String coverNote;
     private Integer rating;
     private LocalDateTime appliedAt;
+    private boolean hasResume;
 }

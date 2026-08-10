@@ -2,11 +2,8 @@ package com.noobdevs.talentbridge_ats.mapper;
 
 import com.noobdevs.talentbridge_ats.dto.JobRequestDTO;
 import com.noobdevs.talentbridge_ats.dto.JobResponseDTO;
-import com.noobdevs.talentbridge_ats.enums.JobStatus;
 import com.noobdevs.talentbridge_ats.models.Job;
 import org.springframework.stereotype.Component;
-
-import java.time.LocalDate;
 
 @Component
 public class JobMapper {

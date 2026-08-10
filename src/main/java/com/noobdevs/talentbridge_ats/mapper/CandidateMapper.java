@@ -4,7 +4,6 @@ package com.noobdevs.talentbridge_ats.mapper;
 import com.noobdevs.talentbridge_ats.dto.CandidateRequestDTO;
 import com.noobdevs.talentbridge_ats.dto.CandidateResponseDTO;
 import com.noobdevs.talentbridge_ats.models.Candidate;
-import com.noobdevs.talentbridge_ats.models.User;
 import org.springframework.stereotype.Component;
 
 @Component

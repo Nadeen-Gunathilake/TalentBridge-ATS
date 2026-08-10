@@ -3,14 +3,16 @@ package com.noobdevs.talentbridge_ats.controller;
 import com.noobdevs.talentbridge_ats.dto.JobRequestDTO;
 import com.noobdevs.talentbridge_ats.dto.JobResponseDTO;
 import com.noobdevs.talentbridge_ats.dto.JobStatusUpdateDTO;
+import com.noobdevs.talentbridge_ats.enums.JobStatus;
 import com.noobdevs.talentbridge_ats.service.JobService;
 import jakarta.validation.Valid;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.web.PageableDefault;
 import org.springframework.http.HttpStatus;
 import org.springframework.http.ResponseEntity;
 import org.springframework.security.core.Authentication;
 import org.springframework.web.bind.annotation.*;
-
-import java.util.List;
 
 @RestController
 @RequestMapping("/api/jobs")
@@ -23,15 +25,22 @@ public class JobController {
     }
 
     @GetMapping
-    public ResponseEntity<List<JobResponseDTO>> getAllJobs(Authentication authentication){
+    public ResponseEntity<Page<JobResponseDTO>> getAllJobs(
+            @RequestParam(required = false) JobStatus status,
+            @RequestParam(required = false) String workMode,
+            @RequestParam(required = false) String employmentType,
+            @RequestParam(required = false) String location,
+            @RequestParam(required = false) String keyword,
+            @PageableDefault(size = 10, sort = "id") Pageable pageable,
+            Authentication authentication) {
         boolean isRecruiter = isRecruiter(authentication);
-        return ResponseEntity.ok(jobService.getAllJobs(isRecruiter));
+        return ResponseEntity.ok(jobService.getAllJobs(isRecruiter, status, workMode, employmentType, location, keyword, pageable));
     }
 
     @GetMapping("/{id}")
-    public ResponseEntity<JobResponseDTO> getJobById(@PathVariable Long id,Authentication authentication){
+    public ResponseEntity<JobResponseDTO> getJobById(@PathVariable Long id, Authentication authentication){
         boolean isRecruiter = isRecruiter(authentication);
-        return ResponseEntity.ok(jobService.getJobById(id,isRecruiter));
+        return ResponseEntity.ok(jobService.getJobById(id, isRecruiter));
     }
 
     @PostMapping
@@ -51,8 +60,8 @@ public class JobController {
     }
 
     @PutMapping("/status/{id}")
-    public ResponseEntity<JobResponseDTO> changeStatus(@PathVariable Long id,@RequestBody JobStatusUpdateDTO dto){
-        return ResponseEntity.ok(jobService.changeStatus(id,dto.getStatus()));
+    public ResponseEntity<JobResponseDTO> changeStatus(@PathVariable Long id, @Valid @RequestBody JobStatusUpdateDTO dto){
+        return ResponseEntity.ok(jobService.changeStatus(id, dto.getStatus()));
     }
 
     private boolean isRecruiter(Authentication authentication) {

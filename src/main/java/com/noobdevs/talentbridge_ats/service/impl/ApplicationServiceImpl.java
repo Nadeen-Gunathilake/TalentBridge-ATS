@@ -1,18 +1,26 @@
 package com.noobdevs.talentbridge_ats.service.impl;
 
-import com.noobdevs.talentbridge_ats.dto.*;
+import com.noobdevs.talentbridge_ats.dto.ApplicationNoteResponseDTO;
+import com.noobdevs.talentbridge_ats.dto.ApplicationRecruiterViewDTO;
+import com.noobdevs.talentbridge_ats.dto.ApplicationResponseDTO;
 import com.noobdevs.talentbridge_ats.enums.ApplicationStatus;
 import com.noobdevs.talentbridge_ats.enums.JobStatus;
 import com.noobdevs.talentbridge_ats.exception.ResourceNotFoundException;
 import com.noobdevs.talentbridge_ats.mapper.ApplicationMapper;
-import com.noobdevs.talentbridge_ats.mapper.JobMapper;
 import com.noobdevs.talentbridge_ats.models.Application;
+import com.noobdevs.talentbridge_ats.models.ApplicationNote;
 import com.noobdevs.talentbridge_ats.models.Candidate;
 import com.noobdevs.talentbridge_ats.models.Job;
+import com.noobdevs.talentbridge_ats.models.Recruiter;
+import com.noobdevs.talentbridge_ats.repository.ApplicationNoteRepository;
 import com.noobdevs.talentbridge_ats.repository.ApplicationRepository;
 import com.noobdevs.talentbridge_ats.repository.CandidateRepository;
 import com.noobdevs.talentbridge_ats.repository.JobRepository;
+import com.noobdevs.talentbridge_ats.repository.RecruiterRepository;
+import com.noobdevs.talentbridge_ats.service.ApplicationPipeline;
 import com.noobdevs.talentbridge_ats.service.ApplicationService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
 import org.springframework.security.access.AccessDeniedException;
 import org.springframework.stereotype.Service;
 import org.springframework.web.multipart.MultipartFile;
@@ -27,19 +35,29 @@ import java.util.stream.Collectors;
 
 @Service
 public class ApplicationServiceImpl implements ApplicationService {
+
     private final ApplicationRepository applicationRepository;
     private final ApplicationMapper applicationMapper;
     private final JobRepository jobRepository;
     private final CandidateRepository candidateRepository;
+    private final RecruiterRepository recruiterRepository;
+    private final ApplicationNoteRepository applicationNoteRepository;
+    private final ApplicationPipeline applicationPipeline;
 
     public ApplicationServiceImpl(ApplicationRepository applicationRepository,
                                   ApplicationMapper applicationMapper,
                                   JobRepository jobRepository,
-                                  CandidateRepository candidateRepository) {
+                                  CandidateRepository candidateRepository,
+                                  RecruiterRepository recruiterRepository,
+                                  ApplicationNoteRepository applicationNoteRepository,
+                                  ApplicationPipeline applicationPipeline) {
         this.applicationRepository = applicationRepository;
         this.applicationMapper = applicationMapper;
         this.jobRepository = jobRepository;
         this.candidateRepository = candidateRepository;
+        this.recruiterRepository = recruiterRepository;
+        this.applicationNoteRepository = applicationNoteRepository;
+        this.applicationPipeline = applicationPipeline;
     }
 
     @Override
@@ -65,13 +83,16 @@ public class ApplicationServiceImpl implements ApplicationService {
     }
 
     @Override
-    public List<ApplicationRecruiterViewDTO> getApplicationsForJob(Long jobId) {
+    public Page<ApplicationRecruiterViewDTO> getApplicationsForJob(Long jobId, ApplicationStatus status, Pageable pageable) {
         if (!jobRepository.existsById(jobId)) {
             throw new ResourceNotFoundException("Job not found with id: " + jobId);
         }
-        return applicationRepository.findByJobId(jobId).stream()
-                .map(applicationMapper::toRecruiterViewDTO)
-                .collect(Collectors.toList());
+
+        Page<Application> applications = (status != null)
+                ? applicationRepository.findByJobIdAndStatus(jobId, status, pageable)
+                : applicationRepository.findByJobId(jobId, pageable);
+
+        return applications.map(applicationMapper::toRecruiterViewDTO);
     }
 
     @Override
@@ -119,9 +140,7 @@ public class ApplicationServiceImpl implements ApplicationService {
             throw new AccessDeniedException("You are not authorized to withdraw this application");
         }
 
-        if (application.getStatus() == ApplicationStatus.WITHDRAWN) {
-            throw new IllegalStateException("Application is already withdrawn");
-        }
+        applicationPipeline.validateWithdrawal(application.getStatus());
 
         application.setStatus(ApplicationStatus.WITHDRAWN);
         return applicationMapper.toResponseDTO(applicationRepository.save(application));
@@ -131,8 +150,45 @@ public class ApplicationServiceImpl implements ApplicationService {
     public ApplicationRecruiterViewDTO changeStatus(Long id, ApplicationStatus status) {
         Application application = applicationRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Application not found with id: " + id));
+
+        applicationPipeline.validateRecruiterTransition(application.getStatus(), status);
+
         application.setStatus(status);
         return applicationMapper.toRecruiterViewDTO(applicationRepository.save(application));
+    }
+
+    @Override
+    public ApplicationRecruiterViewDTO rateApplication(Long id, Integer rating) {
+        Application application = applicationRepository.findById(id)
+                .orElseThrow(() -> new ResourceNotFoundException("Application not found with id: " + id));
+        application.setRating(rating);
+        return applicationMapper.toRecruiterViewDTO(applicationRepository.save(application));
+    }
+
+    @Override
+    public ApplicationNoteResponseDTO addNote(Long applicationId, String content, String recruiterEmail) {
+        Application application = applicationRepository.findById(applicationId)
+                .orElseThrow(() -> new ResourceNotFoundException("Application not found with id: " + applicationId));
+
+        Recruiter author = recruiterRepository.findByEmail(recruiterEmail)
+                .orElseThrow(() -> new ResourceNotFoundException("Recruiter not found"));
+
+        ApplicationNote note = new ApplicationNote();
+        note.setApplication(application);
+        note.setAuthor(author);
+        note.setContent(content);
+
+        return applicationMapper.toNoteResponseDTO(applicationNoteRepository.save(note));
+    }
+
+    @Override
+    public List<ApplicationNoteResponseDTO> getNotes(Long applicationId) {
+        if (!applicationRepository.existsById(applicationId)) {
+            throw new ResourceNotFoundException("Application not found with id: " + applicationId);
+        }
+        return applicationNoteRepository.findByApplicationIdOrderByCreatedAtDesc(applicationId).stream()
+                .map(applicationMapper::toNoteResponseDTO)
+                .collect(Collectors.toList());
     }
 
     @Override

@@ -1,7 +1,12 @@
 package com.noobdevs.talentbridge_ats.mapper;
 
+import com.noobdevs.talentbridge_ats.dto.ApplicationNoteResponseDTO;
+import com.noobdevs.talentbridge_ats.dto.ApplicationRecruiterViewDTO;
+import com.noobdevs.talentbridge_ats.dto.ApplicationRequestDTO;
+import com.noobdevs.talentbridge_ats.dto.ApplicationResponseDTO;
 import com.noobdevs.talentbridge_ats.dto.*;
 import com.noobdevs.talentbridge_ats.models.Application;
+import com.noobdevs.talentbridge_ats.models.ApplicationNote;
 import org.springframework.stereotype.Component;
 
 @Component
@@ -18,7 +23,6 @@ public class ApplicationMapper {
         return dto;
     }
 
-    // Recruiter-facing view — full detail including rating (FR-R7/R8)
     public ApplicationRecruiterViewDTO toRecruiterViewDTO(Application entity) {
         ApplicationRecruiterViewDTO dto = new ApplicationRecruiterViewDTO();
         dto.setId(entity.getId());
@@ -31,6 +35,7 @@ public class ApplicationMapper {
         dto.setCoverNote(entity.getCoverNote());
         dto.setRating(entity.getRating());
         dto.setAppliedAt(entity.getAppliedAt());
+        dto.setHasResume(entity.getResumePath() != null && !entity.getResumePath().isBlank());
         return dto;
     }
 
@@ -40,4 +45,12 @@ public class ApplicationMapper {
         return entity;
     }
 
+    public ApplicationNoteResponseDTO toNoteResponseDTO(ApplicationNote note) {
+        ApplicationNoteResponseDTO dto = new ApplicationNoteResponseDTO();
+        dto.setId(note.getId());
+        dto.setContent(note.getContent());
+        dto.setAuthorName(note.getAuthor() != null ? note.getAuthor().getName() : "Unknown");
+        dto.setCreatedAt(note.getCreatedAt());
+        return dto;
+    }
 }

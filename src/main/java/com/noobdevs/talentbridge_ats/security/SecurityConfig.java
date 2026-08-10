@@ -7,6 +7,7 @@ import org.springframework.http.HttpMethod;
 import org.springframework.security.authentication.AuthenticationManager;
 import org.springframework.security.authentication.dao.DaoAuthenticationProvider;
 import org.springframework.security.config.annotation.authentication.configuration.AuthenticationConfiguration;
+import org.springframework.security.config.annotation.method.configuration.EnableMethodSecurity;
 import org.springframework.security.config.annotation.web.builders.HttpSecurity;
 import org.springframework.security.config.annotation.web.configuration.EnableWebSecurity;
 import org.springframework.security.config.http.SessionCreationPolicy;
@@ -17,6 +18,7 @@ import org.springframework.security.web.authentication.UsernamePasswordAuthentic
 
 @Configuration
 @EnableWebSecurity
+@EnableMethodSecurity
 @RequiredArgsConstructor
 public class SecurityConfig {
 
@@ -49,22 +51,21 @@ public class SecurityConfig {
 
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/error").permitAll()
-
                         .requestMatchers(HttpMethod.GET, "/api/jobs/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/jobs").hasRole("RECRUITER")
                         .requestMatchers(HttpMethod.PUT, "/api/jobs/**").hasRole("RECRUITER")
                         .requestMatchers(HttpMethod.DELETE, "/api/jobs/**").hasRole("RECRUITER")
-
-                                // Applications — order matters: specific paths before broader ones
                         .requestMatchers(HttpMethod.POST, "/api/applications/jobs/*").hasRole("CANDIDATE")
                         .requestMatchers(HttpMethod.GET, "/api/applications/jobs/*").hasRole("RECRUITER")
                         .requestMatchers(HttpMethod.GET, "/api/applications/recruiter/*").hasRole("RECRUITER")
                         .requestMatchers(HttpMethod.PUT, "/api/applications/*/withdraw").hasRole("CANDIDATE")
                         .requestMatchers(HttpMethod.PUT, "/api/applications/*/status").hasRole("RECRUITER")
+                        .requestMatchers(HttpMethod.PUT, "/api/applications/*/rating").hasRole("RECRUITER")
+                        .requestMatchers(HttpMethod.POST, "/api/applications/*/notes").hasRole("RECRUITER")
+                        .requestMatchers(HttpMethod.GET, "/api/applications/*/notes").hasRole("RECRUITER")
                         .requestMatchers(HttpMethod.GET, "/api/applications/*/resume").hasRole("RECRUITER")
                         .requestMatchers(HttpMethod.GET, "/api/applications/*").hasRole("CANDIDATE")
                         .requestMatchers(HttpMethod.GET, "/api/applications").hasRole("CANDIDATE")
-
                         .requestMatchers("/api/recruiters/**").hasRole("RECRUITER")
                         .requestMatchers("/api/candidates/**").authenticated()
                         .anyRequest().authenticated()

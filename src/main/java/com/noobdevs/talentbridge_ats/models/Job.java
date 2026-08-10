@@ -2,7 +2,6 @@ package com.noobdevs.talentbridge_ats.models;
 
 import com.noobdevs.talentbridge_ats.enums.JobStatus;
 
-import jakarta.validation.constraints.NotBlank;
 import lombok.Data;
 import jakarta.persistence.*;
 import java.time.LocalDate;

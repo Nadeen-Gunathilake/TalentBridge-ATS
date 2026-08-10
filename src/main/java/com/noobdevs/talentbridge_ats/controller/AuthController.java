@@ -1,5 +1,9 @@
 package com.noobdevs.talentbridge_ats.controller;
 
+import com.noobdevs.talentbridge_ats.dto.AuthRequest;
+import com.noobdevs.talentbridge_ats.dto.AuthResponse;
+import com.noobdevs.talentbridge_ats.dto.CandidateRequestDTO;
+import com.noobdevs.talentbridge_ats.dto.CandidateResponseDTO;
 import com.noobdevs.talentbridge_ats.dto.*;
 import com.noobdevs.talentbridge_ats.security.JwtUtil;
 import com.noobdevs.talentbridge_ats.service.CandidateService;
@@ -49,7 +53,7 @@ public class AuthController {
         }catch (BadCredentialsException e){
             throw new ResponseStatusException(HttpStatus.UNAUTHORIZED,"Invalid email or password");
 
-    }
+        }
 
     }
 }

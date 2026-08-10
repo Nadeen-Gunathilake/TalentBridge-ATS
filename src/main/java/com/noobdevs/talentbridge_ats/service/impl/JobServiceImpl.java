@@ -9,11 +9,14 @@ import com.noobdevs.talentbridge_ats.models.Job;
 import com.noobdevs.talentbridge_ats.models.Recruiter;
 import com.noobdevs.talentbridge_ats.repository.JobRepository;
 import com.noobdevs.talentbridge_ats.repository.RecruiterRepository;
+import com.noobdevs.talentbridge_ats.repository.spec.JobSpecifications;
 import com.noobdevs.talentbridge_ats.service.JobService;
+import org.springframework.data.domain.Page;
+import org.springframework.data.domain.Pageable;
+import org.springframework.data.jpa.domain.Specification;
 import org.springframework.stereotype.Service;
-
+import java.util.ArrayList;
 import java.util.List;
-import java.util.stream.Collectors;
 
 @Service
 public class JobServiceImpl implements JobService {
@@ -29,11 +32,31 @@ public class JobServiceImpl implements JobService {
     }
 
     @Override
-    public List<JobResponseDTO> getAllJobs(boolean isRecruiter) {
-        List<Job> jobs = isRecruiter
-                ? jobRepository.findAll()
-                : jobRepository.findByStatus(JobStatus.OPEN);
-        return jobs.stream().map(jobMapper::toResponseDTO).collect(Collectors.toList());
+    public Page<JobResponseDTO> getAllJobs(boolean isRecruiter, JobStatus status, String workMode,
+                                           String employmentType, String location, String keyword, Pageable pageable) {
+
+        JobStatus effectiveStatus = isRecruiter ? status : JobStatus.OPEN;
+
+        List<Specification<Job>> specs = new ArrayList<>();
+        if (effectiveStatus != null) {
+            specs.add(JobSpecifications.hasStatus(effectiveStatus));
+        }
+        if (workMode != null && !workMode.isBlank()) {
+            specs.add(JobSpecifications.hasWorkMode(workMode));
+        }
+        if (employmentType != null && !employmentType.isBlank()) {
+            specs.add(JobSpecifications.hasEmploymentType(employmentType));
+        }
+        if (location != null && !location.isBlank()) {
+            specs.add(JobSpecifications.hasLocation(location));
+        }
+        if (keyword != null && !keyword.isBlank()) {
+            specs.add(JobSpecifications.titleContains(keyword));
+        }
+
+        Specification<Job> spec = Specification.allOf(specs);
+
+        return jobRepository.findAll(spec, pageable).map(jobMapper::toResponseDTO);
     }
 
     @Override
@@ -70,7 +93,6 @@ public class JobServiceImpl implements JobService {
         existing.setRequired_skills(dto.getRequired_skills());
         existing.setSalary_range(dto.getSalary_range());
         existing.setClosing_date(dto.getClosing_date());
-        existing.setStatus(dto.getStatus());
 
         return jobMapper.toResponseDTO(jobRepository.save(existing));
     }
@@ -86,7 +108,21 @@ public class JobServiceImpl implements JobService {
     public JobResponseDTO changeStatus(Long id, JobStatus status) {
         Job job = jobRepository.findById(id)
                 .orElseThrow(() -> new ResourceNotFoundException("Job not found with id: " + id));
+
+        validateJobStatusTransition(job.getStatus(), status);
+
         job.setStatus(status);
         return jobMapper.toResponseDTO(jobRepository.save(job));
+    }
+
+    private void validateJobStatusTransition(JobStatus from, JobStatus to) {
+        if (from == to) {
+            return;
+        }
+        boolean legal = (from == JobStatus.DRAFT && to == JobStatus.OPEN)
+                || (from == JobStatus.OPEN && to == JobStatus.CLOSED);
+        if (!legal) {
+            throw new IllegalStateException("Cannot move a job from " + from + " to " + to);
+        }
     }
 }
