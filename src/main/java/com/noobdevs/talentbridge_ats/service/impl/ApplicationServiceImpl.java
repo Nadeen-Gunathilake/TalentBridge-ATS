@@ -226,7 +226,12 @@ public class ApplicationServiceImpl implements ApplicationService {
         }
 
         String contentType = file.getContentType();
-        if (contentType == null || !contentType.equals("application/pdf")) {
+        String filename = file.getOriginalFilename();
+        boolean looksLikePdfByName = filename != null && filename.toLowerCase().endsWith(".pdf");
+        boolean acceptableContentType = "application/pdf".equals(contentType)
+                || "application/octet-stream".equals(contentType);
+
+        if (!acceptableContentType || !looksLikePdfByName) {
             throw new IllegalArgumentException("Resume must be a PDF file");
         }
     }
