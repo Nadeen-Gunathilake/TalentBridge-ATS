@@ -51,6 +51,7 @@ public class SecurityConfig {
 
                         .requestMatchers("/auth/**").permitAll()
                         .requestMatchers("/error").permitAll()
+                        .requestMatchers("/actuator/health").permitAll()
                         .requestMatchers(HttpMethod.GET, "/api/jobs/**").permitAll()
                         .requestMatchers(HttpMethod.POST, "/api/jobs").hasRole("RECRUITER")
                         .requestMatchers(HttpMethod.PUT, "/api/jobs/**").hasRole("RECRUITER")
